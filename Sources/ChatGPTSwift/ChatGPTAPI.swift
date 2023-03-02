@@ -8,7 +8,7 @@
 import Foundation
 
 public class ChatGPTAPI: @unchecked Sendable {
-    static var defaultSystemMessage: Message = .init(role: .system, content: "You are a helpful assistant")
+    public static var defaultSystemMessage: Message = .init(role: .system, content: "You are a helpful assistant")
     var systemMessage: Message
     private var temperature: Double {
         didSet {
