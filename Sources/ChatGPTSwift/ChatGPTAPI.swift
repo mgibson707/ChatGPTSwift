@@ -8,13 +8,13 @@
 import Foundation
 
 public class ChatGPTAPI: @unchecked Sendable {
-    
-    private let systemMessage: Message
+    static var defaultSystemMessage: Message = .init(role: "system", content: "You are a helpful assistant")
+    var systemMessage: Message
     private let temperature: Double
     private let model: String
     
     private let apiKey: String
-    private var historyList = [Message]()
+    private(set) var historyList = [Message]()
     private let urlSession = URLSession.shared
     private var urlRequest: URLRequest {
         let url = URL(string: "https://api.openai.com/v1/chat/completions")!
@@ -45,11 +45,11 @@ public class ChatGPTAPI: @unchecked Sendable {
     
     public init(apiKey: String,
          model: String = "gpt-3.5-turbo",
-         systemPrompt: String = "You are a helpful assistant",
-         temperature: Double = 0.5) {
+         temperature: Double = 0.8,
+         systemPrompt: String? = nil) {
         self.apiKey = apiKey
         self.model = model
-        self.systemMessage = .init(role: "system", content: systemPrompt)
+        self.systemMessage = systemPrompt == nil ? Self.defaultSystemMessage : .init(role: "system", content: systemPrompt!)
         self.temperature = temperature
     }
     
@@ -73,6 +73,15 @@ public class ChatGPTAPI: @unchecked Sendable {
     private func appendToHistoryList(userText: String, responseText: String) {
         self.historyList.append(Message(role: "user", content: userText))
         self.historyList.append(Message(role: "assistant", content: responseText))
+    }
+    
+    func addExampleInteraction(with exampleUserText: String, exampleResponseText: String) {
+        appendToHistoryList(userText: exampleUserText, responseText: exampleResponseText)
+    }
+    
+    func setChatHistoryExamples(to messages: [Message], systemMessage: Message? = nil) {
+        self.systemMessage = systemMessage ?? Self.defaultSystemMessage
+        self.historyList = messages
     }
     
     public func sendMessageStream(text: String) async throws -> AsyncThrowingStream<String, Error> {
