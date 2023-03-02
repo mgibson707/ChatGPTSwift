@@ -15,7 +15,7 @@ public class ChatGPTAPI: @unchecked Sendable {
             temperature = temperature.clamped(to: 0.0...2.0)
         }
     }
-    private let model: Model
+    private let model: GPTModel
     
     private let apiKey: String
     private(set) var historyList = [Message]()
@@ -48,11 +48,11 @@ public class ChatGPTAPI: @unchecked Sendable {
     }
     
     public init(apiKey: String,
-        model: Model? = nil,
+        model: GPTModel? = nil,
         temperature: Double = 0.8,
         systemPrompt: String? = nil) {
         self.apiKey = apiKey
-        self.model = model ?? Model.gpt_3_5_turbo
+        self.model = model ?? GPTModel.gpt_3_5_turbo
         self.systemMessage = systemPrompt == nil ? Self.defaultSystemMessage : .init(role: .system, content: systemPrompt!)
         self.temperature = temperature.clamped(to: 0.0...2.0)
     }
