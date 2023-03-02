@@ -12,8 +12,8 @@ public enum GPTModel: String, Codable {
 }
 
 public struct Message: Codable {
-    let role: MessageRole
-    let content: String
+    public let role: MessageRole
+    public let content: String
 }
 
 public enum MessageRole: String, Codable {
