@@ -12,8 +12,16 @@ public enum GPTModel: String, Codable {
 }
 
 public struct Message: Codable {
+    /// Unique ID for Message. The `id` property is not serialized.
+    let id: UUID = UUID()
+    
     public let role: MessageRole
     public let content: String
+    
+    enum CodingKeys: CodingKey {
+        case role
+        case content
+    }
 }
 
 public enum MessageRole: String, Codable {
