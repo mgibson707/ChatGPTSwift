@@ -38,4 +38,12 @@ final class ChatGPTSwiftTests: XCTestCase {
             print(accumulatedText)
         }
     }
+    
+    func testEncoding() throws {
+        let testReq = Request(model: .gpt_3_5_turbo, temperature: 0.8, messages: [.init(role: .system, content: "You are a chatbot"), .init(role: .user, content: "tell me about chatbot history")], stream: true, maxTokens: 256)
+        let encoded = try JSONEncoder().encode(testReq)
+        let encodedJSONString = String(data: encoded, encoding: .utf8) ?? "JSON couldn't be converted to string"
+        print(encodedJSONString)
+        
+    }
 }

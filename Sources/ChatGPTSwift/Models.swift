@@ -7,6 +7,10 @@
 
 import Foundation
 
+public enum Model: String, Codable {
+    case gpt_3_5_turbo = "gpt-3.5-turbo"
+}
+
 struct Message: Codable {
     let role: MessageRole
     let content: String
@@ -24,10 +28,14 @@ extension Array where Element == Message {
 }
 
 struct Request: Codable {
-    let model: String
+    let model: Model
     let temperature: Double
     let messages: [Message]
     let stream: Bool
+    var maxTokens: Int?
+    var presence_penalty: Float?
+    var frequency_penalty: Float?
+    var logit_bias: [Int: Int]?
 }
 
 struct ErrorRootResponse: Decodable {

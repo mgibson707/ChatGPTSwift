@@ -10,8 +10,12 @@ import Foundation
 public class ChatGPTAPI: @unchecked Sendable {
     static var defaultSystemMessage: Message = .init(role: .system, content: "You are a helpful assistant")
     var systemMessage: Message
-    private let temperature: Double
-    private let model: String
+    private var temperature: Double {
+        didSet {
+            temperature = temperature.clamped(to: 0.0...2.0)
+        }
+    }
+    private let model: Model
     
     private let apiKey: String
     private(set) var historyList = [Message]()
@@ -44,13 +48,13 @@ public class ChatGPTAPI: @unchecked Sendable {
     }
     
     public init(apiKey: String,
-         model: String = "gpt-3.5-turbo",
-         temperature: Double = 0.8,
-         systemPrompt: String? = nil) {
+        model: Model? = nil,
+        temperature: Double = 0.8,
+        systemPrompt: String? = nil) {
         self.apiKey = apiKey
-        self.model = model
+        self.model = model ?? Model.gpt_3_5_turbo
         self.systemMessage = systemPrompt == nil ? Self.defaultSystemMessage : .init(role: .system, content: systemPrompt!)
-        self.temperature = temperature
+        self.temperature = temperature.clamped(to: 0.0...2.0)
     }
     
     private func generateMessages(from text: String) -> [Message] {
@@ -83,6 +87,11 @@ public class ChatGPTAPI: @unchecked Sendable {
         self.systemMessage = systemMessage ?? Self.defaultSystemMessage
         self.historyList = messages
     }
+    
+    func setTemperature(to newTemperature: Double) {
+        self.temperature = newTemperature.clamped(to: 0.0...2.0)
+    }
+    
     
     public func sendMessageStream(text: String) async throws -> AsyncThrowingStream<String, Error> {
         var urlRequest = self.urlRequest
