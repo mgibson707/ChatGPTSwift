@@ -139,7 +139,9 @@ public class ChatGPTAPI: @unchecked Sendable {
         var urlRequest = self.urlRequest
         urlRequest.httpBody = try jsonBody(text: text, stream: false)
         
-        let (data, response) = try await urlSession.data(for: urlRequest)
+        let dataResponse = try await urlSession.data(for: urlRequest)
+        let data: Data = dataResponse.0
+        let response: URLResponse = dataResponse.1
         
         guard let httpResponse = response as? HTTPURLResponse else {
             throw "Invalid response"
