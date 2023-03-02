@@ -22,6 +22,11 @@ public struct Message: Codable {
         case role
         case content
     }
+    
+    public init(role: MessageRole, content: String) {
+        self.role = role
+        self.content = content
+    }
 }
 
 public enum MessageRole: String, Codable {
