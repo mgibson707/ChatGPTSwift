@@ -8,7 +8,7 @@
 import Foundation
 
 public class ChatGPTAPI: @unchecked Sendable {
-    static var defaultSystemMessage: Message = .init(role: "system", content: "You are a helpful assistant")
+    static var defaultSystemMessage: Message = .init(role: .system, content: "You are a helpful assistant")
     var systemMessage: Message
     private let temperature: Double
     private let model: String
@@ -49,12 +49,12 @@ public class ChatGPTAPI: @unchecked Sendable {
          systemPrompt: String? = nil) {
         self.apiKey = apiKey
         self.model = model
-        self.systemMessage = systemPrompt == nil ? Self.defaultSystemMessage : .init(role: "system", content: systemPrompt!)
+        self.systemMessage = systemPrompt == nil ? Self.defaultSystemMessage : .init(role: .system, content: systemPrompt!)
         self.temperature = temperature
     }
     
     private func generateMessages(from text: String) -> [Message] {
-        var messages = [systemMessage] + historyList + [Message(role: "user", content: text)]
+        var messages = [systemMessage] + historyList + [Message(role: .user, content: text)]
         if messages.contentCount > (4000 * 4) {
             _ = historyList.dropFirst()
             messages = generateMessages(from: text)
@@ -71,8 +71,8 @@ public class ChatGPTAPI: @unchecked Sendable {
     }
     
     private func appendToHistoryList(userText: String, responseText: String) {
-        self.historyList.append(Message(role: "user", content: userText))
-        self.historyList.append(Message(role: "assistant", content: responseText))
+        self.historyList.append(Message(role: .user, content: userText))
+        self.historyList.append(Message(role: .assistant, content: responseText))
     }
     
     func addExampleInteraction(with exampleUserText: String, exampleResponseText: String) {

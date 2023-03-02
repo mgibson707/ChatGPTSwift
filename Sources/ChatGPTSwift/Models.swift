@@ -8,8 +8,14 @@
 import Foundation
 
 struct Message: Codable {
-    let role: String
+    let role: MessageRole
     let content: String
+}
+
+enum MessageRole: String, Codable {
+    case system = "system"
+    case assistant = "assistant"
+    case user = "user"
 }
 
 extension Array where Element == Message {
