@@ -11,18 +11,18 @@ public enum GPTModel: String, Codable {
     case gpt_3_5_turbo = "gpt-3.5-turbo"
 }
 
-struct Message: Codable {
+public struct Message: Codable {
     let role: MessageRole
     let content: String
 }
 
-enum MessageRole: String, Codable {
+public enum MessageRole: String, Codable {
     case system = "system"
     case assistant = "assistant"
     case user = "user"
 }
 
-extension Array where Element == Message {
+public extension Array where Element == Message {
     
     var contentCount: Int { map { $0.content }.count }
 }
