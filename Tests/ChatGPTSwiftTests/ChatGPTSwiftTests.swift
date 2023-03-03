@@ -2,7 +2,8 @@ import XCTest
 @testable import ChatGPTSwift
 var api: ChatGPTAPI!
 
-class TestStorage: ChatStorage {
+// Mock Storage
+actor TestStorage: ChatStorage {
     func openConversationSnapshot(conversationID: UUID) -> ChatGPTSwift.Conversation {
         //unimplemented
         return Conversation(messages: [])

@@ -7,7 +7,7 @@
 
 import Foundation
 
-public protocol ChatStorage {
+public protocol ChatStorage: Actor {
     func openConversationSnapshot(conversationID: UUID) throws -> Conversation
     func saveConversationSnapshot(conversation: Conversation)
 }
@@ -92,7 +92,11 @@ public class ChatGPTAPI: @unchecked Sendable {
         self.lastInteraction = Date() // Mark time of save as last interaction
         
         // Save the conversation to ChatStorage
-        self.storage.saveConversationSnapshot(conversation: currentConversationSnapshot)
+        Task {
+            let snapshot = currentConversationSnapshot
+            await self.storage.saveConversationSnapshot(conversation: snapshot)
+            print("Saved conversation \(snapshot.id)")
+        }
     }
     
     /// Prepares to load a conversation by optionally saving the existing conversation. Gets conversation from ChatStorage by id and loads the conversation into the interface.
@@ -100,8 +104,14 @@ public class ChatGPTAPI: @unchecked Sendable {
         if savingExistingConvo {
             self.saveConversation()
         }
-        let convoToLoad = try self.storage.openConversationSnapshot(conversationID: id)
-        self.load(conversation: convoToLoad)
+        
+        Task {
+            let convoToLoad = try await self.storage.openConversationSnapshot(conversationID: id)
+            await MainActor.run {
+                self.load(conversation: convoToLoad)
+            }
+        }
+
     }
     
     private func load(conversation: Conversation){

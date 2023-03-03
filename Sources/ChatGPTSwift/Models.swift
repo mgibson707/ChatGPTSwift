@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct Conversation: Codable {
+public struct Conversation: Codable, Sendable {
     public private(set) var id: UUID = UUID()
     public private(set) var messages: [Message]
     public private(set) var lastInteraction: Date
@@ -80,7 +80,7 @@ public struct Conversation: Codable {
     }
 }
 
-public struct Message: Codable, Equatable {
+public struct Message: Codable, Equatable, Sendable {
     /// Unique ID for Message. The `id` property is not serialized.
     public let id: UUID = UUID()
     
@@ -106,7 +106,7 @@ public struct Message: Codable, Equatable {
     
 }
 
-public enum MessageRole: String, Codable {
+public enum MessageRole: String, Codable, Sendable {
     case system = "system"
     case assistant = "assistant"
     case user = "user"
