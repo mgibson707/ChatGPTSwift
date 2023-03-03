@@ -15,11 +15,11 @@ public struct Conversation: Codable {
     public private(set) var id: UUID = UUID()
     public private(set) var messages: [Message]
     
-    var historyList: [Message] {
+    public var historyList: [Message] {
         messages.filter({$0.role != .system})
     }
     
-    var systemMessage: Message? {
+    public var systemMessage: Message? {
         get{
             messages.first(where: {$0.role == .system})
         }
@@ -31,7 +31,7 @@ public struct Conversation: Codable {
         }
     }
     
-    init(messages: [Message], uuid: UUID? = nil){
+    public init(messages: [Message], uuid: UUID? = nil){
         self.messages = messages
         if let uuid {
             self.id = uuid
@@ -39,34 +39,34 @@ public struct Conversation: Codable {
     }
     
     // Add a new message to the conversation
-    mutating func addMessage(_ message: Message) {
+    public mutating func addMessage(_ message: Message) {
         messages.append(message)
     }
     
     // Delete a message from the conversation
-    mutating func deleteMessage(at index: Int) {
+    public mutating func deleteMessage(at index: Int) {
         guard messages.indices.contains(index) else { return }
         messages.remove(at: index)
     }
     
     // Update a message in the conversation
-    mutating func updateMessage(at index: Int, with newMessage: Message) {
+    public mutating func updateMessage(at index: Int, with newMessage: Message) {
         guard messages.indices.contains(index) else { return }
         messages[index] = newMessage
     }
     
     // Convenience method to get the last message in the conversation
-    func getLastMessage() -> Message? {
+    public func getLastMessage() -> Message? {
         return messages.last
     }
     
     // Convenience method to get the number of messages in the conversation
-    func getMessageCount() -> Int {
+    public func getMessageCount() -> Int {
         return messages.count
     }
     
     // Convenience method to check if the conversation contains a specific message
-    func containsMessage(_ message: Message) -> Bool {
+    public func containsMessage(_ message: Message) -> Bool {
         return messages.contains { messsage in
             message == message
         }
