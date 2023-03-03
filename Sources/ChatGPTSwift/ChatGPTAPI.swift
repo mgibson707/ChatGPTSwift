@@ -57,11 +57,12 @@ public class ChatGPTAPI: @unchecked Sendable {
         self.temperature = temperature.clamped(to: 0.0...2.0)
     }
     
-    private func generateMessages(from text: String) -> [Message] {
+    private func generateMessages(from text: String, history: [Message]) -> [Message] {
         var messages = [systemMessage] + historyList + [Message(role: .user, content: text)]
         if messages.contentCount > (4000 * 4) {
-            _ = historyList.dropFirst()
-            messages = generateMessages(from: text)
+            
+            //_ = historyList.dropFirst()
+            messages = generateMessages(from: text, history: Array(historyList.dropFirst()) )
         }
         return messages
     }
@@ -69,7 +70,7 @@ public class ChatGPTAPI: @unchecked Sendable {
     private func jsonBody(text: String, stream: Bool = true) throws -> Data {
         let request = Request(model: model,
                         temperature: temperature,
-                        messages: generateMessages(from: text),
+                        messages: generateMessages(from: text, history: self.historyList),
                         stream: stream)
         return try JSONEncoder().encode(request)
     }
