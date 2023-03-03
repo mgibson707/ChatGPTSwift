@@ -10,7 +10,7 @@ import Foundation
 public struct Conversation: Codable {
     public private(set) var id: UUID = UUID()
     public private(set) var messages: [Message]
-    
+    public private(set) var lastInteraction: Date
     
     public var historyList: [Message] {
         messages.filter({$0.role != .system})
@@ -32,10 +32,16 @@ public struct Conversation: Codable {
         guard let latestMessage = messages.last else { return "Empty Conversation"}
         return "\(latestMessage.content.firstXWords(5))..."
     }
-    public init(messages: [Message], uuid: UUID? = nil){
+    
+    public init(messages: [Message], uuid: UUID? = nil, lastInteraction: Date? = nil){
         self.messages = messages
         if let uuid {
             self.id = uuid
+        }
+        if let lastInteraction {
+            self.lastInteraction = lastInteraction
+        } else {
+            self.lastInteraction = Date() // Use now if no last interaction date provided
         }
     }
     
@@ -56,8 +62,8 @@ public struct Conversation: Codable {
         messages[index] = newMessage
     }
     
-    // Convenience method to get the last message in the conversation
-    public func getLastMessage() -> Message? {
+    // Computed property for the last message in the conversation
+    public var lastMessage: Message? {
         return messages.last
     }
     

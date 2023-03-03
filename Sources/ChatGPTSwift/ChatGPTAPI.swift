@@ -7,18 +7,39 @@
 
 import Foundation
 
+public protocol ChatStorage {
+    func openConversationSnapshot(conversationID: UUID) throws -> Conversation
+    func saveConversationSnapshot(conversation: Conversation)
+}
+
 public class ChatGPTAPI: @unchecked Sendable {
+    public private(set) var storage: ChatStorage
     public static var defaultSystemMessage: Message = .init(role: .system, content: "You are a helpful assistant")
-    var systemMessage: Message
+    
+    public private(set) var systemMessage: Message
+    public private(set) var historyList = [Message]()
+    public private(set) var lastInteraction: Date
+    public private(set) var conversationID: UUID?
+    
+    // MARK: Computed Message Log Properties
+    public var currentFullMessageHistory: [Message] {
+        [systemMessage] + historyList
+    }
+    
+    public var currentConversationSnapshot: Conversation {
+        Conversation(messages: self.currentFullMessageHistory, uuid: self.conversationID, lastInteraction: self.lastInteraction)
+    }
+   
+    // MARK: - Model Params
     private var temperature: Double {
         didSet {
             temperature = temperature.clamped(to: 0.0...2.0)
         }
     }
     private let model: GPTModel
-    
     private let apiKey: String
-    private(set) var historyList = [Message]()
+
+    // MARK: - Network Helpers
     private let urlSession = URLSession.shared
     private var urlRequest: URLRequest {
         let url = URL(string: "https://api.openai.com/v1/chat/completions")!
@@ -50,26 +71,44 @@ public class ChatGPTAPI: @unchecked Sendable {
     public init(apiKey: String,
         model: GPTModel? = nil,
         temperature: Double = 0.8,
-        systemPrompt: String? = nil) {
+        systemPrompt: String? = nil,
+        storage: ChatStorage) {
         self.apiKey = apiKey
         self.model = model ?? GPTModel.gpt_3_5_turbo
         self.systemMessage = systemPrompt == nil ? Self.defaultSystemMessage : .init(role: .system, content: systemPrompt!)
         self.temperature = temperature.clamped(to: 0.0...2.0)
+        self.storage = storage
+        self.lastInteraction = Date()
     }
     
-    public var currentConversation: Conversation {
-        Conversation(messages: currentFullMessageHistory)
-    }
-    
-    public var currentFullMessageHistory: [Message] {
-        [systemMessage] + historyList
-    }
-    
-    public func loadConversation(conversation: Conversation){
-        // TODO: save conversation before overwriting
+
+    /// Prepares for saving then calls save on ChatStorage with up to date Conversation
+    public func saveConversation() {
+        // Ensure there is an ID to associate with this convo
+        if self.conversationID == nil {
+            self.conversationID = UUID()
+            print("Assigned ID to conversation: \(self.conversationID!.uuidString)")
+        }
+        self.lastInteraction = Date() // Mark time of save as last interaction
         
+        // Save the conversation to ChatStorage
+        self.storage.saveConversationSnapshot(conversation: currentConversationSnapshot)
+    }
+    
+    /// Prepares to load a conversation by optionally saving the existing conversation. Gets conversation from ChatStorage by id and loads the conversation into the interface.
+    public func loadConversation(with id: UUID, savingExistingConvo: Bool = true) throws {
+        if savingExistingConvo {
+            self.saveConversation()
+        }
+        let convoToLoad = try self.storage.openConversationSnapshot(conversationID: id)
+        self.load(conversation: convoToLoad)
+    }
+    
+    private func load(conversation: Conversation){
         self.systemMessage = conversation.systemMessage ?? Self.defaultSystemMessage
         self.historyList = conversation.historyList
+        self.lastInteraction = conversation.lastInteraction
+        self.conversationID = conversation.id
     }
     
     private func generateMessages(from text: String, history: [Message]) -> [Message] {
@@ -91,6 +130,7 @@ public class ChatGPTAPI: @unchecked Sendable {
     private func appendToHistoryList(userText: String, responseText: String) {
         self.historyList.append(Message(role: .user, content: userText))
         self.historyList.append(Message(role: .assistant, content: responseText))
+        self.lastInteraction = Date()
     }
     
     func addExampleInteraction(with exampleUserText: String, exampleResponseText: String) {
@@ -100,6 +140,7 @@ public class ChatGPTAPI: @unchecked Sendable {
     func setChatHistoryExamples(to messages: [Message], systemMessage: Message? = nil) {
         self.systemMessage = systemMessage ?? Self.defaultSystemMessage
         self.historyList = messages
+        self.lastInteraction = Date()
     }
     
     func setTemperature(to newTemperature: Double) {

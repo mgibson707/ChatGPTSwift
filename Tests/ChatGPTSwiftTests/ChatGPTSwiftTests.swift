@@ -2,10 +2,23 @@ import XCTest
 @testable import ChatGPTSwift
 var api: ChatGPTAPI!
 
+class TestStorage: ChatStorage {
+    func openConversationSnapshot(conversationID: UUID) -> ChatGPTSwift.Conversation {
+        //unimplemented
+        return Conversation(messages: [])
+    }
+    
+    func saveConversationSnapshot(conversation: ChatGPTSwift.Conversation) {
+        //unimplemented
+    }
+}
+
 final class ChatGPTSwiftTests: XCTestCase {
+
+    
     
     override class func setUp() {
-        api = ChatGPTAPI(apiKey: Constants.openAIAPIKey)
+        api = ChatGPTAPI(apiKey: Constants.openAIAPIKey, storage: TestStorage())
     }
     
     @MainActor func testExample() throws {
@@ -27,7 +40,7 @@ final class ChatGPTSwiftTests: XCTestCase {
             }
         }
         
-        wait(for: [exp])
+        wait(for: [exp], timeout: 15)
     }
     
     func testStream() async throws {
