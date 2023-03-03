@@ -7,13 +7,10 @@
 
 import Foundation
 
-public enum GPTModel: String, Codable {
-    case gpt_3_5_turbo = "gpt-3.5-turbo"
-}
-
 public struct Conversation: Codable {
     public private(set) var id: UUID = UUID()
     public private(set) var messages: [Message]
+    
     
     public var historyList: [Message] {
         messages.filter({$0.role != .system})
@@ -64,8 +61,8 @@ public struct Conversation: Codable {
         return messages.last
     }
     
-    // Convenience method to get the number of messages in the conversation
-    public func getMessageCount() -> Int {
+     // Computed property for the number of messages in the conversation
+    var messageCount: Int {
         return messages.count
     }
     
@@ -112,6 +109,11 @@ public enum MessageRole: String, Codable {
 public extension Array where Element == Message {
     
     var contentCount: Int { map { $0.content }.count }
+}
+
+/// Model identifier to use for request to OpenAI. Currently only `gpt-3.5-turbo`.
+public enum GPTModel: String, Codable {
+    case gpt_3_5_turbo = "gpt-3.5-turbo"
 }
 
 struct Request: Codable {
