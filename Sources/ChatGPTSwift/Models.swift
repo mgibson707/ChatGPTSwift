@@ -13,7 +13,23 @@ public enum GPTModel: String, Codable {
 
 public struct Conversation: Codable {
     public private(set) var id: UUID = UUID()
-    var messages: [Message]
+    public private(set) var messages: [Message]
+    
+    var historyList: [Message] {
+        messages.filter({$0.role != .system})
+    }
+    
+    var systemMessage: Message? {
+        get{
+            messages.first(where: {$0.role == .system})
+        }
+        set{
+            messages.removeAll(where: {$0.role == .system})
+            if let newValue {
+                messages.insert(newValue, at: 0)
+            }
+        }
+    }
     
     init(messages: [Message], uuid: UUID? = nil){
         self.messages = messages

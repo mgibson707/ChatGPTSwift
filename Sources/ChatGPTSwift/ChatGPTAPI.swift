@@ -57,11 +57,24 @@ public class ChatGPTAPI: @unchecked Sendable {
         self.temperature = temperature.clamped(to: 0.0...2.0)
     }
     
+    public var currentConversation: Conversation {
+        Conversation(messages: currentFullMessageHistory)
+    }
+    
+    public var currentFullMessageHistory: [Message] {
+        [systemMessage] + historyList
+    }
+    
+    public func loadConversation(conversation: Conversation){
+        // TODO: save conversation before overwriting
+        
+        self.systemMessage = conversation.systemMessage ?? Self.defaultSystemMessage
+        self.historyList = conversation.historyList
+    }
+    
     private func generateMessages(from text: String, history: [Message]) -> [Message] {
         var messages = [systemMessage] + historyList + [Message(role: .user, content: text)]
         if messages.contentCount > (4000 * 4) {
-            
-            //_ = historyList.dropFirst()
             messages = generateMessages(from: text, history: Array(historyList.dropFirst()) )
         }
         return messages
