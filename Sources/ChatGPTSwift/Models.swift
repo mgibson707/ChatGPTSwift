@@ -31,6 +31,10 @@ public struct Conversation: Codable {
         }
     }
     
+    public var title: String {
+        guard let latestMessage = messages.last else { return "Empty Conversation"}
+        return "\(latestMessage.content.firstXWords(5))..."
+    }
     public init(messages: [Message], uuid: UUID? = nil){
         self.messages = messages
         if let uuid {

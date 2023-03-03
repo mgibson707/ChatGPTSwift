@@ -19,3 +19,18 @@ public extension Comparable {
         return min(max(self, limits.lowerBound), limits.upperBound)
     }
 }
+
+
+extension StringProtocol {
+    func firstXWords(_ n: Int) -> SubSequence {
+        var endIndex = self.endIndex
+        var words = 0
+        enumerateSubstrings(in: startIndex..., options: .byWords) { _, range, _, stop in
+            words += 1
+            if words == n {
+                stop = true
+                endIndex = range.upperBound
+            }
+        }
+        return self[..<endIndex] }
+}
