@@ -11,7 +11,53 @@ public enum GPTModel: String, Codable {
     case gpt_3_5_turbo = "gpt-3.5-turbo"
 }
 
-public struct Message: Codable {
+public struct Conversation: Codable {
+    public private(set) var id: UUID = UUID()
+    var messages: [Message]
+    
+    init(messages: [Message], uuid: UUID? = nil){
+        self.messages = messages
+        if let uuid {
+            self.id = uuid
+        }
+    }
+    
+    // Add a new message to the conversation
+    mutating func addMessage(_ message: Message) {
+        messages.append(message)
+    }
+    
+    // Delete a message from the conversation
+    mutating func deleteMessage(at index: Int) {
+        guard messages.indices.contains(index) else { return }
+        messages.remove(at: index)
+    }
+    
+    // Update a message in the conversation
+    mutating func updateMessage(at index: Int, with newMessage: Message) {
+        guard messages.indices.contains(index) else { return }
+        messages[index] = newMessage
+    }
+    
+    // Convenience method to get the last message in the conversation
+    func getLastMessage() -> Message? {
+        return messages.last
+    }
+    
+    // Convenience method to get the number of messages in the conversation
+    func getMessageCount() -> Int {
+        return messages.count
+    }
+    
+    // Convenience method to check if the conversation contains a specific message
+    func containsMessage(_ message: Message) -> Bool {
+        return messages.contains { messsage in
+            message == message
+        }
+    }
+}
+
+public struct Message: Codable, Equatable {
     /// Unique ID for Message. The `id` property is not serialized.
     public let id: UUID = UUID()
     
@@ -27,6 +73,14 @@ public struct Message: Codable {
         self.role = role
         self.content = content
     }
+    
+    public static func ==(lhs: Message, rhs: Message) -> Bool {
+        return
+            lhs.content == rhs.content &&
+            lhs.role == rhs.role
+    }
+
+    
 }
 
 public enum MessageRole: String, Codable {
