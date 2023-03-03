@@ -62,7 +62,7 @@ public struct Conversation: Codable {
     }
     
      // Computed property for the number of messages in the conversation
-    var messageCount: Int {
+    public var messageCount: Int {
         return messages.count
     }
     
