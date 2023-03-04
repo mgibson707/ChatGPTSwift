@@ -65,10 +65,10 @@ public struct Conversation: Codable, AppEntity, Sendable {
     
     public private(set) var id: UUID = UUID()
     
-    @EntityProperty(title: "Messages")
+//    @EntityProperty(title: "Messages")
     public private(set) var messages: [Message]
     
-    @EntityProperty(title: "Last Interaction")
+//    @EntityProperty(title: "Last Interaction")
     public private(set) var lastInteraction: Date
     
     public var historyList: [Message] {
