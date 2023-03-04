@@ -13,7 +13,7 @@ public protocol ChatStorage: Actor {
 }
 
 public class ChatGPTAPI: @unchecked Sendable {
-    public private(set) var storage: ChatStorage
+    weak public private(set) var storage: ChatStorage?
     public static var defaultSystemMessage: Message = .init(role: .system, content: "You are a helpful assistant")
     
     public private(set) var systemMessage: Message
@@ -83,18 +83,19 @@ public class ChatGPTAPI: @unchecked Sendable {
     
 
     /// Prepares for saving then calls save on ChatStorage with up to date Conversation
-    public func saveConversation() {
+    public func saveConversation() throws {
         // Ensure there is an ID to associate with this convo
         if self.conversationID == nil {
             self.conversationID = UUID()
             print("Assigned ID to conversation: \(self.conversationID!.uuidString)")
         }
         self.lastInteraction = Date() // Mark time of save as last interaction
-        
+        guard let storage = storage else { throw "no storage"}
+
         // Save the conversation to ChatStorage
         Task {
             let snapshot = currentConversationSnapshot
-            await self.storage.saveConversationSnapshot(conversation: snapshot)
+            await storage.saveConversationSnapshot(conversation: snapshot)
             print("Saved conversation \(snapshot.id)")
         }
     }
@@ -102,11 +103,12 @@ public class ChatGPTAPI: @unchecked Sendable {
     /// Prepares to load a conversation by optionally saving the existing conversation. Gets conversation from ChatStorage by id and loads the conversation into the interface.
     public func loadConversation(with id: UUID, savingExistingConvo: Bool = true) throws {
         if savingExistingConvo {
-            self.saveConversation()
+            try self.saveConversation()
         }
+        guard let storage = storage else { throw "no storage"}
         
         Task {
-            let convoToLoad = try await self.storage.openConversationSnapshot(conversationID: id)
+            let convoToLoad = try await storage.openConversationSnapshot(conversationID: id)
             await MainActor.run {
                 self.load(conversation: convoToLoad)
             }
