@@ -93,11 +93,10 @@ public class ChatGPTAPI: @unchecked Sendable {
         guard let storage = storage else { throw "no storage"}
 
         // Save the conversation to ChatStorage
-        Task {
-            let snapshot = currentConversationSnapshot
-            await storage.saveConversationSnapshot(conversation: snapshot)
-            print("Saved conversation \(snapshot.id)")
-        }
+        let snapshot = currentConversationSnapshot
+        await storage.saveConversationSnapshot(conversation: snapshot)
+        print("Saved conversation \(snapshot.id)")
+        
     }
     
     /// Prepares to load a conversation by optionally saving the existing conversation. Gets conversation from ChatStorage by id and loads the conversation into the interface.
@@ -107,12 +106,8 @@ public class ChatGPTAPI: @unchecked Sendable {
         }
         guard let storage = storage else { throw "no storage"}
         
-        Task {
-            let convoToLoad = try await storage.openConversationSnapshot(conversationID: id)
-            await MainActor.run {
-                self.load(conversation: convoToLoad)
-            }
-        }
+        let convoToLoad = try await storage.openConversationSnapshot(conversationID: id)
+        self.load(conversation: convoToLoad)
 
     }
     
