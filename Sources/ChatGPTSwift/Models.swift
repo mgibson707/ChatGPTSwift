@@ -8,17 +8,17 @@
 import Foundation
 import AppIntents
 
-extension Conversation: AppEntity {
-
-
-    public static var defaultQuery = ConvoQuery()
-
-    public static var typeDisplayRepresentation: TypeDisplayRepresentation = "Chat Conversation"
-    public var displayRepresentation: DisplayRepresentation {
-        DisplayRepresentation(title: "\(self.title)", subtitle: "\(self.messageCount) message conversation", image: .init(systemName: "bubble.left.and.bubble.right"))
-    }
-
-}
+//extension Conversation: AppEntity {
+//
+//
+//    public static var defaultQuery = ConvoQuery()
+//
+//    public static var typeDisplayRepresentation: TypeDisplayRepresentation = "Chat Conversation"
+//    public var displayRepresentation: DisplayRepresentation {
+//        DisplayRepresentation(title: "\(self.title)", subtitle: "\(self.messageCount) message conversation", image: .init(systemName: "bubble.left.and.bubble.right"))
+//    }
+//
+//}
 
 public struct ConvoQuery: EntityQuery {
     public func entities(for identifiers: [UUID]) async throws -> [Conversation] {
@@ -33,7 +33,14 @@ public struct ConvoQuery: EntityQuery {
 }
 
 
-public struct Conversation: Codable, Sendable {
+public struct Conversation: Codable, AppEntity, Sendable {
+    
+    public static var defaultQuery = ConvoQuery()
+
+    public static var typeDisplayRepresentation: TypeDisplayRepresentation = "Chat Conversation"
+    public var displayRepresentation: DisplayRepresentation {
+        DisplayRepresentation(title: "\(self.title)", subtitle: "\(self.messageCount) message conversation", image: .init(systemName: "bubble.left.and.bubble.right"))
+    }
     
     
     enum CodingKeys: CodingKey {
@@ -132,27 +139,24 @@ public struct Conversation: Codable, Sendable {
     }
 }
 
-extension Message: AppEntity {
-
-
-    public static var defaultQuery = MessageQuery()
-    public static var typeDisplayRepresentation: TypeDisplayRepresentation = "Chat Message"
-    public var displayRepresentation: DisplayRepresentation {
-        var image: DisplayRepresentation.Image
-        switch self.role {
-        case .assistant:
-            image = .init(systemName: "network.badge.shield.half.filled")
-        case .user:
-            image = .init(systemName: "person.and.background.dotted")
-        case .system:
-            image = .init(systemName: "server.rack")
-        }
-        return DisplayRepresentation(title: "\(self.role.rawValue) Message", subtitle: "\(self.content)", image: image)
-    }
-
-
-
-}
+//extension Message: AppEntity {
+//
+//
+//    public static var defaultQuery = MessageQuery()
+//    public static var typeDisplayRepresentation: TypeDisplayRepresentation = "Chat Message"
+//    public var displayRepresentation: DisplayRepresentation {
+//        var image: DisplayRepresentation.Image
+//        switch self.role {
+//        case .assistant:
+//            image = .init(systemName: "network.badge.shield.half.filled")
+//        case .user:
+//            image = .init(systemName: "person.and.background.dotted")
+//        case .system:
+//            image = .init(systemName: "server.rack")
+//        }
+//        return DisplayRepresentation(title: "\(self.role.rawValue) Message", subtitle: "\(self.content)", image: image)
+//    }
+//}
 
 public struct MessageQuery: EntityQuery {
     public func entities(for identifiers: [UUID]) async throws -> [Message] {
@@ -171,7 +175,22 @@ public struct MessageQuery: EntityQuery {
 
 
 
-public struct Message: Codable, Equatable, Sendable {
+public struct Message: Codable, AppEntity, Equatable, Sendable {
+    
+    public static var defaultQuery = MessageQuery()
+    public static var typeDisplayRepresentation: TypeDisplayRepresentation = "Chat Message"
+    public var displayRepresentation: DisplayRepresentation {
+        var image: DisplayRepresentation.Image
+        switch self.role {
+        case .assistant:
+            image = .init(systemName: "network.badge.shield.half.filled")
+        case .user:
+            image = .init(systemName: "person.and.background.dotted")
+        case .system:
+            image = .init(systemName: "server.rack")
+        }
+        return DisplayRepresentation(title: "\(self.role.rawValue) Message", subtitle: "\(self.content)", image: image)
+    }
     
     /// Unique ID for Message. The `id` property is not serialized.
     public let id: UUID = UUID()
