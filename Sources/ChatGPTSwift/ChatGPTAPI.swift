@@ -83,7 +83,7 @@ public class ChatGPTAPI: @unchecked Sendable {
     
 
     /// Prepares for saving then calls save on ChatStorage with up to date Conversation
-    public func saveConversation() throws {
+    public func saveConversation() async throws {
         // Ensure there is an ID to associate with this convo
         if self.conversationID == nil {
             self.conversationID = UUID()
@@ -101,9 +101,9 @@ public class ChatGPTAPI: @unchecked Sendable {
     }
     
     /// Prepares to load a conversation by optionally saving the existing conversation. Gets conversation from ChatStorage by id and loads the conversation into the interface.
-    public func loadConversation(with id: UUID, savingExistingConvo: Bool = true) throws {
+    public func loadConversation(with id: UUID, savingExistingConvo: Bool = true) async throws {
         if savingExistingConvo {
-            try self.saveConversation()
+            try await self.saveConversation()
         }
         guard let storage = storage else { throw "no storage"}
         
