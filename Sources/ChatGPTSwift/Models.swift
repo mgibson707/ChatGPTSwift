@@ -6,10 +6,62 @@
 //
 
 import Foundation
+import AppIntents
+
+extension Conversation: AppEntity {
+
+
+    public static var defaultQuery = ConvoQuery()
+
+    public static var typeDisplayRepresentation: TypeDisplayRepresentation = "Chat Conversation"
+    public var displayRepresentation: DisplayRepresentation {
+        DisplayRepresentation(title: "\(self.title)", subtitle: "\(self.messageCount) message conversation", image: .init(systemName: "bubble.left.and.bubble.right"))
+    }
+
+}
+
+public struct ConvoQuery: EntityQuery {
+    public func entities(for identifiers: [UUID]) async throws -> [Conversation] {
+        return await ConvoStore.shared.getConvosFor(identifiers: identifiers)
+    }
+    
+    public init() { }
+    
+    public func suggestedEntities() async throws -> [Conversation] {
+        return await ConvoStore.shared.convos
+    }
+}
+
 
 public struct Conversation: Codable, Sendable {
+    
+    
+    enum CodingKeys: CodingKey {
+        case id
+        case messages
+        case lastInteraction
+    }
+    
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: Self.CodingKeys)
+        try container.encode(id, forKey: .id)
+        try container.encode(messages, forKey: .messages)
+        try container.encode(lastInteraction, forKey: .lastInteraction)
+    }
+    
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try container.decode(UUID.self, forKey: .id)
+        self.messages = try container.decode([Message].self, forKey: .messages)
+        self.lastInteraction = try container.decode(Date.self, forKey: .lastInteraction)
+    }
+    
     public private(set) var id: UUID = UUID()
+    
+    @EntityProperty(title: "Messages")
     public private(set) var messages: [Message]
+    
+    @EntityProperty(title: "Last Interaction")
     public private(set) var lastInteraction: Date
     
     public var historyList: [Message] {
@@ -80,11 +132,52 @@ public struct Conversation: Codable, Sendable {
     }
 }
 
+extension Message: AppEntity {
+
+
+    public static var defaultQuery = MessageQuery()
+    public static var typeDisplayRepresentation: TypeDisplayRepresentation = "Chat Message"
+    public var displayRepresentation: DisplayRepresentation {
+        var image: DisplayRepresentation.Image
+        switch self.role {
+        case .assistant:
+            image = .init(systemName: "network.badge.shield.half.filled")
+        case .user:
+            image = .init(systemName: "person.and.background.dotted")
+        case .system:
+            image = .init(systemName: "server.rack")
+        }
+        return DisplayRepresentation(title: "\(self.role.rawValue) Message", subtitle: "\(self.content)", image: image)
+    }
+
+
+
+}
+
+public struct MessageQuery: EntityQuery {
+    public func entities(for identifiers: [UUID]) async throws -> [Message] {
+            //return await ConvoStore.shared.getConvosFor(identifiers: identifiers)
+        return []
+    }
+    
+    public init() { }
+    
+    public func suggestedEntities() async throws -> [Message] {
+        //return await ConvoStore.shared.convos
+        return []
+    }
+}
+
+
+
+
 public struct Message: Codable, Equatable, Sendable {
+    
     /// Unique ID for Message. The `id` property is not serialized.
     public let id: UUID = UUID()
     
     public let role: MessageRole
+    
     public let content: String
     
     enum CodingKeys: CodingKey {
