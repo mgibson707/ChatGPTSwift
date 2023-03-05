@@ -120,7 +120,7 @@ public class ChatGPTAPI: @unchecked Sendable {
     
     private func generateMessages(from text: String, history: [Message]) -> [Message] {
         var messages = [systemMessage] + historyList + [Message(role: .user, content: text)]
-        if messages.contentCount > (4000 * 4) {
+        if messages.contentCount > (3200 * 4) {
             messages = generateMessages(from: text, history: Array(historyList.dropFirst()) )
         }
         return messages
