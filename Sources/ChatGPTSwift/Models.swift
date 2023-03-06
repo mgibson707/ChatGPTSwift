@@ -62,6 +62,12 @@ public struct Conversation: Codable, Sendable {
         messages[index] = newMessage
     }
     
+    private mutating func addExampleInteraction(userText: String, assistantResponseText: String) {
+        self.addMessage(Message(role: .user, content: userText))
+        self.addMessage(Message(role: .assistant, content: assistantResponseText))
+        self.lastInteraction = Date()
+    }
+    
     // Computed property for the last message in the conversation
     public var lastMessage: Message? {
         return messages.last
