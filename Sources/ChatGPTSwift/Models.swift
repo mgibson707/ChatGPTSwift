@@ -62,7 +62,7 @@ public struct Conversation: Codable, Sendable {
         messages[index] = newMessage
     }
     
-    private mutating func addExampleInteraction(userText: String, assistantResponseText: String) {
+    public mutating func addExampleInteraction(userText: String, assistantResponseText: String) {
         self.addMessage(Message(role: .user, content: userText))
         self.addMessage(Message(role: .assistant, content: assistantResponseText))
         self.lastInteraction = Date()
