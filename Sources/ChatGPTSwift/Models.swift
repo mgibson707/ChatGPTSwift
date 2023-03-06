@@ -9,9 +9,11 @@ import Foundation
 
 public struct Conversation: Codable, Sendable {
     public private(set) var id: UUID = UUID()
+    /// All messages in the conversation
     public private(set) var messages: [Message]
     public private(set) var lastInteraction: Date
     
+    /// Message history excluding system messages
     public var historyList: [Message] {
         messages.filter({$0.role != .system})
     }
