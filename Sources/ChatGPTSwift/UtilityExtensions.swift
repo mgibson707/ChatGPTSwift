@@ -21,7 +21,7 @@ public extension Comparable {
 }
 
 
-extension StringProtocol {
+public extension StringProtocol {
     func firstXWords(_ n: Int) -> SubSequence {
         var endIndex = self.endIndex
         var words = 0
@@ -33,4 +33,26 @@ extension StringProtocol {
             }
         }
         return self[..<endIndex] }
+}
+
+
+
+
+/*
+ Usage Example:
+ let array = Array(1...5)
+ for subsequence in array.unfoldSubSequences(limitedTo: 2) {
+     print(subsequence)  // [1, 2] [3, 4] [5]
+ }
+ */
+/// Slice a collection into smaller collections
+public extension Collection {
+    func unfoldSubSequences(limitedTo maxLength: Int) -> UnfoldSequence<SubSequence,Index> {
+        sequence(state: startIndex) { start in
+            guard start < self.endIndex else { return nil }
+            let end = self.index(start, offsetBy: maxLength, limitedBy: self.endIndex) ?? self.endIndex
+            defer { start = end }
+            return self[start..<end]
+        }
+    }
 }

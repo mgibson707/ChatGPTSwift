@@ -6,10 +6,12 @@
 //
 
 import Foundation
+import Combine
+import SwiftUI
 
 public protocol ChatStorage: Actor {
-    func openConversationSnapshot(conversationID: UUID) throws -> Conversation
-    func saveConversationSnapshot(conversation: Conversation)
+    func openConversationSnapshot(conversationID: UUID) async throws -> Conversation
+    func saveConversationSnapshot(conversation: Conversation) async
 }
 
 public class ChatGPTAPI: @unchecked Sendable {
@@ -17,9 +19,23 @@ public class ChatGPTAPI: @unchecked Sendable {
     public static var defaultSystemMessage: Message = .init(role: .system, content: "You are a helpful assistant")
     
     public private(set) var systemMessage: Message
-    public private(set) var historyList = [Message]()
+    public private(set) var historyList = [Message]() {
+        // When the messages are updates, send the update to the publishing Pipeline
+        didSet {
+            DispatchQueue.main.async {
+                self.publishingPipeline.send(self.historyList)
+            }
+        }
+    }
+    
     public private(set) var lastInteraction: Date
     public private(set) var conversationID: UUID?
+    
+    lazy private var publishingPipeline = { CurrentValueSubject<[Message], Never>(self.historyList) }()
+    
+    lazy public private(set) var messagesPublisher: AnyPublisher<[Message], Never> = {
+        self.publishingPipeline.removeDuplicates().eraseToAnyPublisher()
+    }()
     
     // MARK: Computed Message Log Properties
     public var currentFullMessageHistory: [Message] {
@@ -73,6 +89,8 @@ public class ChatGPTAPI: @unchecked Sendable {
         temperature: Double = 0.8,
         systemPrompt: String? = nil,
         storage: ChatStorage) {
+        
+        // TODO: make it so that a new convo without id isnt created every new invocation
         self.apiKey = apiKey
         self.model = model ?? GPTModel.gpt_3_5_turbo
         self.systemMessage = systemPrompt == nil ? Self.defaultSystemMessage : .init(role: .system, content: systemPrompt!)
@@ -81,9 +99,16 @@ public class ChatGPTAPI: @unchecked Sendable {
         self.lastInteraction = Date()
     }
     
-
+    
+    // MARK: - Save
+    
     /// Prepares for saving then calls save on ChatStorage with up to date Conversation
     public func saveConversation() async throws {
+        
+        if self.historyList.count == 0 && self.currentFullMessageHistory == [Self.defaultSystemMessage]  {
+            return
+        }
+        
         // Ensure there is an ID to associate with this convo
         if self.conversationID == nil {
             self.conversationID = UUID()
@@ -96,27 +121,35 @@ public class ChatGPTAPI: @unchecked Sendable {
         let snapshot = currentConversationSnapshot
         await storage.saveConversationSnapshot(conversation: snapshot)
         print("Saved conversation \(snapshot.id)")
-        
     }
     
+    // MARK: - Load
+    
     /// Prepares to load a conversation by optionally saving the existing conversation. Gets conversation from ChatStorage by id and loads the conversation into the interface.
-    public func loadConversation(with id: UUID, savingExistingConvo: Bool = true) async throws {
+    @MainActor public func loadConversation(with id: UUID, savingExistingConvo: Bool = true) async throws {
         if savingExistingConvo {
-            try await self.saveConversation()
+            // ignore request to save the default convo to avoid creating many duplicates 
+                try await self.saveConversation()
         }
         guard let storage = storage else { throw "no storage"}
         
         let convoToLoad = try await storage.openConversationSnapshot(conversationID: id)
         self.load(conversation: convoToLoad)
+        print("Loaded Conversation \(convoToLoad.id.uuidString)")
 
     }
     
-    private func load(conversation: Conversation){
-        self.systemMessage = conversation.systemMessage ?? Self.defaultSystemMessage
-        self.historyList = conversation.historyList
-        self.lastInteraction = conversation.lastInteraction
-        self.conversationID = conversation.id
+    @MainActor private func load(conversation: Conversation){
+        withAnimation(.easeInOut) {
+            self.systemMessage = conversation.systemMessage ?? Self.defaultSystemMessage
+            self.historyList = conversation.historyList
+            self.lastInteraction = conversation.lastInteraction
+            self.conversationID = conversation.id
+        }
+
     }
+    
+    // MARK: - Chat Methods
     
     private func generateMessages(from text: String, history: [Message]) -> [Message] {
         var messages = [systemMessage] + historyList + [Message(role: .user, content: text)]
@@ -135,9 +168,9 @@ public class ChatGPTAPI: @unchecked Sendable {
     }
     
     private func appendToHistoryList(userText: String, responseText: String) {
+        self.lastInteraction = Date()
         self.historyList.append(Message(role: .user, content: userText))
         self.historyList.append(Message(role: .assistant, content: responseText))
-        self.lastInteraction = Date()
     }
     
     func addExampleInteraction(with exampleUserText: String, exampleResponseText: String) {
@@ -155,7 +188,7 @@ public class ChatGPTAPI: @unchecked Sendable {
     }
     
     
-    public func sendMessageStream(text: String) async throws -> AsyncThrowingStream<String, Error> {
+    public func sendMessageStream(text: String, appendInteraction: Bool = true) async throws -> AsyncThrowingStream<String, Error> {
         var urlRequest = self.urlRequest
         urlRequest.httpBody = try jsonBody(text: text)
         let (result, response) = try await urlSession.bytes(for: urlRequest)
@@ -189,6 +222,9 @@ public class ChatGPTAPI: @unchecked Sendable {
                         }
                     }
                     self?.appendToHistoryList(userText: text, responseText: responseText)
+                    if appendInteraction {
+                        try await self?.saveConversation()
+                    }
                     continuation.finish()
                 } catch {
                     continuation.finish(throwing: error)
@@ -197,7 +233,7 @@ public class ChatGPTAPI: @unchecked Sendable {
         }
     }
 
-    public func sendMessage(text: String) async throws -> String {
+    public func sendMessage(text: String, appendInteraction: Bool = true) async throws -> String {
         var urlRequest = self.urlRequest
         urlRequest.httpBody = try jsonBody(text: text, stream: false)
         
@@ -221,6 +257,9 @@ public class ChatGPTAPI: @unchecked Sendable {
             let completionResponse = try self.jsonDecoder.decode(CompletionResponse.self, from: data)
             let responseText = completionResponse.choices.first?.message.content ?? ""
             self.appendToHistoryList(userText: text, responseText: responseText)
+            if appendInteraction {
+                try await self.saveConversation()
+            }
             return responseText
         } catch {
             throw error
