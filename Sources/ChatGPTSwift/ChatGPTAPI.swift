@@ -93,14 +93,14 @@ public class ChatGPTAPI: @unchecked Sendable {
         model: GPTModel? = nil,
         temperature: Double = 0.8,
         systemPrompt: String? = nil,
-        storage: ChatStorage) {
+        storage: ChatStorage? = nil) {
         
         // TODO: make it so that a new convo without id isnt created every new invocation
         self.apiKey = apiKey
         self.model = model ?? GPTModel.gpt_3_5_turbo
         self.systemMessage = systemPrompt == nil ? Self.defaultSystemMessage : .init(role: .system, content: systemPrompt!)
         self.temperature = temperature.clamped(to: 0.0...2.0)
-        self.storage = storage
+        self.storage = storage == nil ? SimpleConvoStore.shared : storage
         self.lastInteraction = Date()
     }
     
