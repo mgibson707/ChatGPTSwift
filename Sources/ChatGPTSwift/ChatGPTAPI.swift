@@ -23,6 +23,7 @@ public class ChatGPTAPI: @unchecked Sendable {
         // When the messages are updates, send the update to the publishing Pipeline
         didSet {
             DispatchQueue.main.async {
+                print("History list set to \(self.historyList.count) items: \(self.historyList)")
                 self.publishingPipeline.send(self.historyList)
             }
         }
@@ -45,6 +46,10 @@ public class ChatGPTAPI: @unchecked Sendable {
     public var currentConversationSnapshot: Conversation {
         Conversation(messages: self.currentFullMessageHistory, uuid: self.conversationID, lastInteraction: self.lastInteraction)
     }
+    
+    public var newDuplicateConversationSnapshot: Conversation {
+        Conversation(messages: self.currentFullMessageHistory, uuid: UUID(), lastInteraction: Date())
+    }
    
     // MARK: - Model Params
     private var temperature: Double {
@@ -52,7 +57,7 @@ public class ChatGPTAPI: @unchecked Sendable {
             temperature = temperature.clamped(to: 0.0...2.0)
         }
     }
-    private let model: GPTModel
+    public var model: GPTModel
     private let apiKey: String
 
     // MARK: - Network Helpers
@@ -139,6 +144,17 @@ public class ChatGPTAPI: @unchecked Sendable {
 
     }
     
+    @MainActor public func loadConversation(_ conversation: Conversation, savingExistingConvo: Bool = true) async throws {
+        if savingExistingConvo {
+            // ignore request to save the default convo to avoid creating many duplicates
+                try await self.saveConversation()
+        }
+        
+        self.load(conversation: conversation)
+        print("Loaded Conversation \(conversation.id.uuidString)")
+
+    }
+    
     @MainActor private func load(conversation: Conversation){
         withAnimation(.easeInOut) {
             self.systemMessage = conversation.systemMessage ?? Self.defaultSystemMessage
@@ -187,8 +203,15 @@ public class ChatGPTAPI: @unchecked Sendable {
         self.temperature = newTemperature.clamped(to: 0.0...2.0)
     }
     
+    public func indexFor(message: Message) -> Int? {
+        return historyList.firstIndex(of: message)
+    }
     
-    public func sendMessageStream(text: String, appendInteraction: Bool = true) async throws -> AsyncThrowingStream<String, Error> {
+    public func sendMessageStream(text: String, overwritingMessageAt index: Int? = nil, appendInteraction: Bool = true) async throws -> AsyncThrowingStream<String, Error> {
+        if let index {
+            try await removeMessagesStartingWith(messageAt: index)
+        }
+        
         var urlRequest = self.urlRequest
         urlRequest.httpBody = try jsonBody(text: text)
         let (result, response) = try await urlSession.bytes(for: urlRequest)
@@ -233,7 +256,11 @@ public class ChatGPTAPI: @unchecked Sendable {
         }
     }
 
-    public func sendMessage(text: String, appendInteraction: Bool = true) async throws -> String {
+    public func sendMessage(text: String, overwritingMessageAt index: Int? = nil, appendInteraction: Bool = true) async throws -> String {
+        if let index {
+            try await removeMessagesStartingWith(messageAt: index)
+        }
+        
         var urlRequest = self.urlRequest
         urlRequest.httpBody = try jsonBody(text: text, stream: false)
         
@@ -269,5 +296,35 @@ public class ChatGPTAPI: @unchecked Sendable {
     public func deleteHistoryList() {
         self.historyList.removeAll()
     }
+    
+    public func setHistoryList(to newHistoryList: [Message]) async throws {
+        await MainActor.run{
+//            withAnimation {
+                self.historyList = newHistoryList
+//            }
+        }
+        try await self.saveConversation()
+        
+    }
+    
+    public func removeMessagesStartingWith(messageAt index: Int) async throws {
+        
+
+        
+        try await MainActor.run {
+            //print(historyList.indices.upperBound)
+            //self.historyList.removeSubrange(index...historyList.count - 1)
+            guard historyList.indices.contains(index) else {
+                throw "removeMessagesStartingWith recieved out of bounds index which was rejected."
+            }
+            
+            
+            let dropLast = historyList.count - index
+            print("History list count: \(historyList.count) | Index: \(index) | Dropping last \(dropLast)")
+            self.historyList = self.historyList.dropLast(dropLast)
+        }
+        try await self.saveConversation()
+    }
+
 }
 

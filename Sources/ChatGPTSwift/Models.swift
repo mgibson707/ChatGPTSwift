@@ -7,127 +7,20 @@
 
 import Foundation
 
-public struct Conversation: Codable, Sendable {
-    public private(set) var id: UUID = UUID()
-    /// All messages in the conversation
-    public private(set) var messages: [Message]
-    public private(set) var lastInteraction: Date
-    
-    /// Message history excluding system messages
-    public var historyList: [Message] {
-        messages.filter({$0.role != .system})
-    }
-    
-    public var systemMessage: Message? {
-        get{
-            messages.first(where: {$0.role == .system})
-        }
-        set{
-            messages.removeAll(where: {$0.role == .system})
-            if let newValue {
-                messages.insert(newValue, at: 0)
-            }
-        }
-    }
-    
-    public var title: String {
-        guard let latestMessage = messages.last else { return "Empty Conversation"}
-        return "\(latestMessage.content.firstXWords(5))..."
-    }
-    
-    public init(messages: [Message], uuid: UUID? = nil, lastInteraction: Date? = nil){
-        self.messages = messages
-        if let uuid {
-            self.id = uuid
-        }
-        if let lastInteraction {
-            self.lastInteraction = lastInteraction
-        } else {
-            self.lastInteraction = Date() // Use now if no last interaction date provided
-        }
-    }
-    
-    // Add a new message to the conversation
-    public mutating func addMessage(_ message: Message) {
-        messages.append(message)
-    }
-    
-    // Delete a message from the conversation
-    public mutating func deleteMessage(at index: Int) {
-        guard messages.indices.contains(index) else { return }
-        messages.remove(at: index)
-    }
-    
-    // Update a message in the conversation
-    public mutating func updateMessage(at index: Int, with newMessage: Message) {
-        guard messages.indices.contains(index) else { return }
-        messages[index] = newMessage
-    }
-    
-    public mutating func addExampleInteraction(userText: String, assistantResponseText: String) {
-        self.addMessage(Message(role: .user, content: userText))
-        self.addMessage(Message(role: .assistant, content: assistantResponseText))
-        self.lastInteraction = Date()
-    }
-    
-    // Computed property for the last message in the conversation
-    public var lastMessage: Message? {
-        return messages.last
-    }
-    
-     // Computed property for the number of messages in the conversation
-    public var messageCount: Int {
-        return messages.count
-    }
-    
-    // Convenience method to check if the conversation contains a specific message
-    public func containsMessage(_ message: Message) -> Bool {
-        return messages.contains { messsage in
-            message == message
-        }
-    }
-}
-
-public struct Message: Codable, Equatable, Sendable {
-    /// Unique ID for Message. The `id` property is not serialized.
-    public let id: UUID = UUID()
-    
-    public let role: MessageRole
-    public let content: String
-    
-    enum CodingKeys: CodingKey {
-        case role
-        case content
-    }
-    
-    public init(role: MessageRole, content: String) {
-        self.role = role
-        self.content = content
-    }
-    
-    public static func ==(lhs: Message, rhs: Message) -> Bool {
-        return
-            lhs.content == rhs.content &&
-            lhs.role == rhs.role
-    }
-
-    
-}
-
-public enum MessageRole: String, Codable, Sendable {
-    case system = "system"
-    case assistant = "assistant"
-    case user = "user"
-}
-
-public extension Array where Element == Message {
-    
-    var contentCount: Int { map { $0.content }.count }
-}
 
 /// Model identifier to use for request to OpenAI. Currently only `gpt-3.5-turbo`.
-public enum GPTModel: String, Codable {
+public enum GPTModel: String, Codable, CaseIterable {
     case gpt_3_5_turbo = "gpt-3.5-turbo"
+    case gpt_4 = "gpt-4"
+    
+    public var displayName: String {
+        switch self {
+        case .gpt_3_5_turbo:
+            return "GPT-3.5 Turbo"
+        case .gpt_4:
+            return "GPT-4"
+        }
+    }
 }
 
 struct Request: Codable {

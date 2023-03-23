@@ -7,9 +7,11 @@
 
 import Foundation
 
-public struct Message: Codable, Equatable, Sendable {
+public struct Message: Codable, Sendable, Equatable, Hashable {
     /// Unique ID for Message. The `id` property is not serialized.
-    public let id: UUID = UUID()
+    //public let id: UUID = UUID()
+    
+    public private(set) var lastInteraction: Date = Date() // excluded from uniqueness of struct
     
     public let role: MessageRole
     public let content: String
@@ -19,15 +21,21 @@ public struct Message: Codable, Equatable, Sendable {
         case content
     }
     
-    public init(role: MessageRole, content: String) {
+    public init(role: MessageRole, content: String, lastInteraction: Date? = nil) {
         self.role = role
         self.content = content
+        self.lastInteraction = lastInteraction ?? Date()
     }
     
     public static func ==(lhs: Message, rhs: Message) -> Bool {
         return
             lhs.content == rhs.content &&
             lhs.role == rhs.role
+    }
+    
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(role)
+        hasher.combine(content)
     }
 
     
