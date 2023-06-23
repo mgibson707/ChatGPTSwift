@@ -8,7 +8,7 @@
 import Foundation
 
 ///Extension of Comparable similar to `ClosedRange.clamped(to:_) -> ClosedRange` from standard Swift library.
-public extension Comparable {
+extension Comparable {
     
     ///Returns a Comparable type that is limited to the range provided.
     /// Usage:

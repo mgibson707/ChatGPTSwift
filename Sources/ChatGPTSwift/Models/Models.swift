@@ -6,10 +6,10 @@
 //
 
 import Foundation
-
+import SwiftUI
 
 /// Model identifier to use for request to OpenAI. Currently only `gpt-3.5-turbo`.
-public enum GPTModel: String, Codable, CaseIterable {
+public enum GPTModel: String, Codable, CaseIterable, Hashable {
     case gpt_3_5_turbo = "gpt-3.5-turbo"
     case gpt_4 = "gpt-4"
     
@@ -19,6 +19,13 @@ public enum GPTModel: String, Codable, CaseIterable {
             return "GPT-3.5 Turbo"
         case .gpt_4:
             return "GPT-4"
+        }
+    }
+    
+    public var displayImage: Image {
+        switch self {
+        case .gpt_3_5_turbo, .gpt_4:
+            return Image(systemName: "slider.horizontal.2.square.on.square")
         }
     }
 }

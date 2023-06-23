@@ -16,6 +16,8 @@ public struct Message: Codable, Sendable, Equatable, Hashable {
     public let role: MessageRole
     public let content: String
     
+    public var isExample: Bool = false
+    
     enum CodingKeys: CodingKey {
         case role
         case content
@@ -45,6 +47,7 @@ public enum MessageRole: String, Codable, Sendable {
     case system = "system"
     case assistant = "assistant"
     case user = "user"
+    case function = "function"
 }
 
 public extension Array where Element == Message {

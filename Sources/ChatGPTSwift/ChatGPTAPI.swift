@@ -14,7 +14,7 @@ public protocol ChatStorage: Actor {
     func saveConversationSnapshot(conversation: Conversation) async
 }
 
-public class ChatGPTAPI: @unchecked Sendable {
+public class ChatGPTAPI {
     weak public private(set) var storage: ChatStorage?
     public static var defaultSystemMessage: Message = .init(role: .system, content: "You are a helpful assistant")
     
@@ -29,6 +29,7 @@ public class ChatGPTAPI: @unchecked Sendable {
         }
     }
     
+
     public private(set) var lastInteraction: Date
     public private(set) var conversationID: UUID?
     
@@ -91,7 +92,7 @@ public class ChatGPTAPI: @unchecked Sendable {
     
     public init(apiKey: String,
         model: GPTModel? = nil,
-        temperature: Double = 0.8,
+        temperature: Double = 0.1,
         systemPrompt: String? = nil,
         storage: ChatStorage? = nil) {
         
@@ -207,7 +208,15 @@ public class ChatGPTAPI: @unchecked Sendable {
         return historyList.firstIndex(of: message)
     }
     
-    public func sendMessageStream(text: String, overwritingMessageAt index: Int? = nil, appendInteraction: Bool = true) async throws -> AsyncThrowingStream<String, Error> {
+    public func updateMessage(at index: Int, with newMessage: Message) -> Bool {
+        guard (historyList.startIndex..<historyList.endIndex).contains(index) else {
+            return false
+        }
+        historyList[index] = newMessage
+        return true
+    }
+    
+    public func sendMessageStream(text: String, overwritingMessageAt index: Int? = nil, savingInteraction: Bool = true) async throws -> AsyncThrowingStream<String, Error> {
         if let index {
             try await removeMessagesStartingWith(messageAt: index)
         }
@@ -245,7 +254,7 @@ public class ChatGPTAPI: @unchecked Sendable {
                         }
                     }
                     self?.appendToHistoryList(userText: text, responseText: responseText)
-                    if appendInteraction {
+                    if savingInteraction {
                         try await self?.saveConversation()
                     }
                     continuation.finish()
@@ -256,7 +265,7 @@ public class ChatGPTAPI: @unchecked Sendable {
         }
     }
 
-    public func sendMessage(text: String, overwritingMessageAt index: Int? = nil, appendInteraction: Bool = true) async throws -> String {
+    public func sendMessage(text: String, overwritingMessageAt index: Int? = nil, savingInteraction: Bool = true) async throws -> String {
         if let index {
             try await removeMessagesStartingWith(messageAt: index)
         }
@@ -284,7 +293,7 @@ public class ChatGPTAPI: @unchecked Sendable {
             let completionResponse = try self.jsonDecoder.decode(CompletionResponse.self, from: data)
             let responseText = completionResponse.choices.first?.message.content ?? ""
             self.appendToHistoryList(userText: text, responseText: responseText)
-            if appendInteraction {
+            if savingInteraction {
                 try await self.saveConversation()
             }
             return responseText
@@ -302,6 +311,18 @@ public class ChatGPTAPI: @unchecked Sendable {
 //            withAnimation {
                 self.historyList = newHistoryList
 //            }
+        }
+        try await self.saveConversation()
+        
+    }
+    
+    public func setSystemPrompt(to newSystemPrompt: String) async throws {
+        guard !newSystemPrompt.isEmpty else {
+            throw "Setting empty system prompt"
+        }
+        
+        await MainActor.run {
+            self.systemMessage = Message(role: .system, content: newSystemPrompt)
         }
         try await self.saveConversation()
         
